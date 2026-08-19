@@ -1,0 +1,96 @@
+schema_version: 1
+project:
+  name: brats_men_rt
+  data_root: ..
+  output_root: ../outputs/preprocessing
+
+manifest:
+  columns:
+    case_id: case_id
+    patient_id: patient_id
+    split: split
+    image: t1c_path
+    label: label_path
+    brain_mask: brain_mask_path
+    fold: fold
+    site: site
+    session: session_id
+  allowed_splits: [train, validation]
+  require_train_labels: true
+
+pipeline:
+  orientation: RAS
+  brain_mask:
+    source: totalsegmentator
+    totalsegmentator:
+      executable: TotalSegmentator
+      task: total_mr
+      roi: brain
+      device: gpu
+      fast: false
+      extra_args: []
+      overwrite: false
+  n4:
+    enabled: false
+    shrink_factor: 2
+    iterations: [50, 50, 30, 20]
+    convergence_threshold: null
+  clipping:
+    enabled: false
+    lower_percentile: 0.5
+    upper_percentile: 99.5
+    stats_mask: head_nonzero
+    apply_mask: nonzero
+    minimum_voxels: 100
+  normalization:
+    method: zscore
+    stats_mask: head_nonzero
+    apply_mask: nonzero
+    minimum_voxels: 100
+  rectangular_mask:
+    enabled: true
+    margin_mm: 10.0
+  crop:
+    enabled: false
+    margin_mm: 20.0
+  resample:
+    enabled: false
+    target_spacing_mm: native
+  qc:
+    minimum_finite_fraction: 1.0
+    crop_volume_tolerance_pct: 0.01
+    max_label_volume_change_pct: 10.0
+
+profiles:
+  P0_MEDIAN_ZSCORE:
+    enabled: true
+    description: Uncropped head-foreground z-score at training-median spacing
+    resample:
+      enabled: true
+      target_spacing_mm: training_median
+  P1_MEDIAN_CLIP_ZSCORE:
+    enabled: true
+    description: Uncropped head-foreground clipping and z-score at training-median spacing
+    clipping:
+      enabled: true
+    resample:
+      enabled: true
+      target_spacing_mm: training_median
+  P2_MEDIAN_N4_ZSCORE:
+    enabled: true
+    description: TotalSegmentator-guided N4 and head-foreground z-score at training-median spacing
+    n4:
+      enabled: true
+    resample:
+      enabled: true
+      target_spacing_mm: training_median
+  P3_MEDIAN_N4_CLIP_ZSCORE:
+    enabled: true
+    description: TotalSegmentator-guided N4, head-foreground clipping, and z-score at training-median spacing
+    n4:
+      enabled: true
+    clipping:
+      enabled: true
+    resample:
+      enabled: true
+      target_spacing_mm: training_median
