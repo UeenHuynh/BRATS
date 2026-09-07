@@ -93,12 +93,15 @@ class PreparedCase:
     input_components: int | None
     brain_source: str
     input_hashes: dict[str, str]
+    timings_sec: dict[str, float]
 
 
 def prepare_case(
     row: Mapping[str, str], spec: Mapping[str, Any], spec_dir: Path, cache_root: Path, needs_n4: bool
 ) -> PreparedCase:
     sitk = import_sitk()
+    shared_started = time.perf_counter()
+    n4_started: float | None = None
     paths = case_paths(row, spec, spec_dir)
     image_path = paths["image"]
     if image_path is None or not image_path.exists():
@@ -122,6 +125,7 @@ def prepare_case(
     n4_metrics: dict[str, Any] = {}
     n4_error = None
     if needs_n4:
+        n4_started = time.perf_counter()
         try:
             case_id = manifest_value(row, spec, "case_id")
             cache = cache_root / case_id
@@ -158,6 +162,10 @@ def prepare_case(
         input_components=connected_components(label_oriented) if label_oriented is not None else None,
         brain_source=brain_source,
         input_hashes=hashes,
+        timings_sec={
+            "shared_prepare_case_sec": round(time.perf_counter() - shared_started, 3),
+            "n4_sec": round(time.perf_counter() - n4_started, 3) if n4_started is not None else 0.0,
+        },
     )
 
 
@@ -175,6 +183,8 @@ def process_profile(
 ) -> dict[str, Any]:
     sitk = import_sitk()
     started = time.time()
+    profile_started = time.perf_counter()
+    profile_timings: dict[str, float] = {}
     config = effective_profile(spec, profile_id)
     case_id = manifest_value(row, spec, "case_id")
     split = manifest_value(row, spec, "split").lower()
@@ -218,13 +228,16 @@ def process_profile(
     effective_support = sitk.Cast(source_support > 0, sitk.sitkUInt8)
     if rectangle is not None:
         effective_support = sitk.And(effective_support, sitk.Cast(rectangle > 0, sitk.sitkUInt8))
+    intensity_started = time.perf_counter()
     image, intensity_metrics = transform_intensity(source, brain, head, effective_support, config)
+    profile_timings["intensity_transform_sec"] = round(time.perf_counter() - intensity_started, 3)
     after_crop_volume = binary_volume(label) if label is not None else None
     if prepared.input_label_volume and after_crop_volume is not None:
         retained = 100.0 * after_crop_volume / prepared.input_label_volume
         if retained < 100.0 - float(config["qc"].get("crop_volume_tolerance_pct", 0.01)):
             raise ValueError(f"Crop removed labeled volume: retained={retained:.6f}%")
     spacing = target_spacing(config["resample"], median_spacing)
+    resample_started = time.perf_counter()
     if spacing is not None:
         image = resample(image, spacing, False)
         label = resample(label, spacing, True) if label is not None else None
@@ -232,6 +245,7 @@ def process_profile(
         head = resample(head, spacing, True)
         source_support = resample(source_support, spacing, True)
         effective_support = resample(effective_support, spacing, True)
+    profile_timings["resample_sec"] = round(time.perf_counter() - resample_started, 3)
     brain = sitk.Cast(brain > 0, sitk.sitkUInt8)
     head = sitk.Cast(head > 0, sitk.sitkUInt8)
     source_support = sitk.Cast(source_support > 0, sitk.sitkUInt8)
@@ -264,6 +278,7 @@ def process_profile(
     output_hashes = {"image_sha256": write_image_verified(image, image_path)}
     if label is not None:
         output_hashes["label_sha256"] = write_image_verified(label, label_path)
+    profile_timings["total_profile_sec"] = round(time.perf_counter() - profile_started, 3)
     metadata: dict[str, Any] = {
         "schema_version": 1,
         "run_id": run_id,
@@ -306,6 +321,10 @@ def process_profile(
                 "outside_value": 0.0 if rectangle_enabled else None,
             },
             "target_spacing_mm": spacing,
+            "timings_sec": {
+                **prepared.timings_sec,
+                **profile_timings,
+            },
         },
         "qc": {
             "status": "WARN" if warnings else "PASS",
@@ -357,8 +376,17 @@ def run(
     overwrite: bool,
     fail_fast: bool,
     dry_run: bool,
+    brain_mask_source: str | None = None,
 ) -> int:
     spec, all_rows = validate_inputs(spec_path, manifest_path)
+    if brain_mask_source is not None:
+        configured_source = str(spec["pipeline"]["brain_mask"].get("source", "otsu"))
+        spec["pipeline"]["brain_mask"]["source"] = brain_mask_source
+        spec["pipeline"]["brain_mask"]["source_override"] = {
+            "from": configured_source,
+            "to": brain_mask_source,
+            "reason": "controlled profile comparison override",
+        }
     spec_dir = spec_path.parent
     selected = list(
         profiles or [profile_id for profile_id, value in spec["profiles"].items() if bool(value.get("enabled", True))]
@@ -409,6 +437,10 @@ def run(
     for position, row in enumerate(rows, start=1):
         case_id = manifest_value(row, spec, "case_id")
         print(f"[{position}/{len(rows)}] {case_id}", flush=True)
+        if all(profile_outputs_complete(row, spec, output_root, profile_id) for profile_id in selected):
+            records.extend(skipped_record(row, spec, profile_id, run_id, output_root) for profile_id in selected)
+            print(f"  SKIPPED existing outputs for all {len(selected)} profiles", flush=True)
+            continue
         try:
             prepared = prepare_case(row, spec, spec_dir, output_root / "cache", needs_n4)
             for profile_id in selected:
@@ -449,6 +481,42 @@ def run(
     run_path.write_text(json.dumps(run_record, indent=2), encoding="utf-8")
     print(json.dumps(summary, indent=2))
     return 0 if failures == 0 else 2
+
+
+def profile_outputs_complete(
+    row: Mapping[str, str], spec: Mapping[str, Any], output_root: Path, profile_id: str
+) -> bool:
+    case_id = manifest_value(row, spec, "case_id")
+    split = manifest_value(row, spec, "split").lower()
+    case_root = output_root / "datasets" / profile_id / split
+    image_path = case_root / "images" / f"{case_id}.nii.gz"
+    label_path = case_root / "labels" / f"{case_id}.nii.gz"
+    expects_label = bool(manifest_value(row, spec, "label"))
+    return image_path.exists() and (not expects_label or label_path.exists())
+
+
+def skipped_record(
+    row: Mapping[str, str],
+    spec: Mapping[str, Any],
+    profile_id: str,
+    run_id: str,
+    output_root: Path,
+) -> dict[str, Any]:
+    case_id = manifest_value(row, spec, "case_id")
+    split = manifest_value(row, spec, "split").lower()
+    case_root = output_root / "datasets" / profile_id / split
+    return {
+        "run_id": run_id,
+        "profile_id": profile_id,
+        "case_id": case_id,
+        "patient_id": manifest_value(row, spec, "patient_id"),
+        "split": manifest_value(row, spec, "split"),
+        "fold": manifest_value(row, spec, "fold"),
+        "site": manifest_value(row, spec, "site"),
+        "status": "SKIPPED",
+        "qc_status": "NOT_RUN",
+        "output_image": str(case_root / "images" / f"{case_id}.nii.gz"),
+    }
 
 
 def failure_record(

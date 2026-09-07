@@ -24,12 +24,18 @@ class DatasetSpec:
     mode: str = "2d"
     augment: bool = True
     case_limit: int | None = None
+    case_ids: tuple[str, ...] | None = None
 
 
 def list_cases(spec: DatasetSpec) -> list[str]:
     image_dir = spec.dataset_root / spec.split / "images"
     files = sorted(image_dir.glob("*.nii.gz"))
-    cases = [f.stem.replace(".nii", "") for f in files]
+    discovered = [f.stem.replace(".nii", "") for f in files]
+    if spec.case_ids is None:
+        cases = discovered
+    else:
+        available = set(discovered)
+        cases = [case_id for case_id in spec.case_ids if case_id in available]
     if spec.case_limit is not None:
         cases = cases[: spec.case_limit]
     return cases
