@@ -1,0 +1,42 @@
+schema_version: 1
+seed: 42
+mode: 2d
+dataset_root: ../outputs/preprocessing/datasets
+output_root: ../outputs/benchmark_2d
+source_split: train
+profiles:
+  - P0_MEDIAN_ZSCORE
+  - P1_MEDIAN_CLIP_ZSCORE
+  - P2_MEDIAN_N4_ZSCORE
+  - P3_MEDIAN_N4_CLIP_ZSCORE
+split:
+  validation_fraction: 0.2
+data:
+  patch_size: [256, 256]
+training:
+  epochs: 5
+  batch_size: 8
+  num_workers: 4
+  amp: true
+  grad_clip: 1.0
+  log_interval: 100
+model:
+  arch: unet2d
+  in_channels: 1
+  num_classes: 1
+  base_filters: 32
+loss:
+  name: dice_ce
+  dice_weight: 1.0
+  bce_weight: 1.0
+  bce_pos_weight: 100.0
+optimizer:
+  name: adam
+  lr: 0.0001
+  weight_decay: 0.00001
+scheduler:
+  name: cosine
+  warmup_epochs: 0
+evaluation:
+  batch_size: 8
+  threshold: 0.5

@@ -23,14 +23,14 @@ package = false
 [tool.ruff]
 line-length = 120
 target-version = "py311"
-extend-exclude = ["archive", "data", "outputs", "conda_env", "brats_env"]
+extend-exclude = ["archive", "data", "outputs"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
 [tool.pyright]
-include = ["src/brats"]
-exclude = ["archive", "data", "outputs", "conda_env", "brats_env"]
+include = ["brats"]
+exclude = ["archive", "data", "outputs"]
 pythonVersion = "3.11"
 typeCheckingMode = "strict"
 reportMissingTypeStubs = false

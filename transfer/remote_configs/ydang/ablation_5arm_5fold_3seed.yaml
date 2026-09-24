@@ -1,0 +1,72 @@
+schema_version: 1
+experiment_name: ablation_5arm_5fold_3seed
+require_cuda: true
+expected_labeled_cases: 500
+folds: [0, 1, 2, 3, 4]
+seeds: [42, 2026, 3407]
+inner_validation_fraction: 0.10
+inner_split_seed: 4242
+
+fold_root: /mnt/beegfs/ydang/BRATS/experiments/legacy_corrected/run_20949/splits
+raw_label_root: /mnt/beegfs/ydang/BRATS/datasets/raw_canonical/train
+raw_label_template: "{case_id}/{case_id}_gtv.nii.gz"
+output_root: /mnt/beegfs/ydang/BRATS/experiments/ablation_5arm_5fold_3seed
+
+arms:
+  legacy_corrected:
+    root: /mnt/beegfs/ydang/BRATS/experiments/legacy_corrected/run_20949/data_processed
+    image_template: "images/{case_id}_t1c.nii.gz"
+    label_template: "masks/{case_id}_gtv.nii.gz"
+  P0_MEDIAN_ZSCORE:
+    root: /mnt/beegfs/ydang/BRATS/experiments/preprocessing_full_canonical/run_20950/datasets/P0_MEDIAN_ZSCORE/train
+    image_template: "images/{case_id}.nii.gz"
+    label_template: "labels/{case_id}.nii.gz"
+  P1_MEDIAN_CLIP_ZSCORE:
+    root: /mnt/beegfs/ydang/BRATS/experiments/preprocessing_full_canonical/run_20950/datasets/P1_MEDIAN_CLIP_ZSCORE/train
+    image_template: "images/{case_id}.nii.gz"
+    label_template: "labels/{case_id}.nii.gz"
+  P2_MEDIAN_N4_ZSCORE:
+    root: /mnt/beegfs/ydang/BRATS/experiments/preprocessing_full_canonical/run_20950/datasets/P2_MEDIAN_N4_ZSCORE/train
+    image_template: "images/{case_id}.nii.gz"
+    label_template: "labels/{case_id}.nii.gz"
+  P3_MEDIAN_N4_CLIP_ZSCORE:
+    root: /mnt/beegfs/ydang/BRATS/experiments/preprocessing_full_canonical/run_20950/datasets/P3_MEDIAN_N4_CLIP_ZSCORE/train
+    image_template: "images/{case_id}.nii.gz"
+    label_template: "labels/{case_id}.nii.gz"
+
+data:
+  patch_shape: [64, 128, 128]
+  patches_per_case: 2
+  foreground_probability: 0.67
+
+model:
+  architecture: unet3d
+  in_channels: 1
+  num_classes: 1
+  base_filters: 16
+
+loss:
+  name: dice_ce
+  dice_weight: 1.0
+  bce_weight: 1.0
+  bce_pos_weight: 100.0
+
+training:
+  epochs: 150
+  batch_size: 2
+  num_workers: 0
+  amp: true
+  learning_rate: 0.0001
+  weight_decay: 0.00001
+  grad_clip: 1.0
+  evaluation_interval: 5
+  early_stopping_patience: 30
+
+evaluation:
+  batch_size: 2
+  threshold: 0.5
+  overlap: 0.5
+  surface_dice_tolerance_mm: 2.0
+
+bootstrap_samples: 10000
+bootstrap_seed: 911

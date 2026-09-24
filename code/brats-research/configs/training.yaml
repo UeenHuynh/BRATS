@@ -1,0 +1,79 @@
+schema_version: 1
+
+project:
+  name: brats_men_rt_training
+  output_root: ../outputs/training
+
+data:
+  dataset_root: ../outputs/preprocessing/datasets/P0_MEDIAN_ZSCORE
+  mode: 2d  # "2d" or "3d"
+  depth: 64        # used for 3d
+  patch_size: [256, 256]
+  case_limit: null  # null = all cases, integer = first N
+
+model:
+  arch: unet2d  # "unet2d" or "unet3d"
+  in_channels: 1
+  num_classes: 1
+  base_filters: 32  # 32 for 2d, 16 for 3d
+
+loss:
+  name: dice_ce  # "dice", "dice_ce", "focal"
+  dice_weight: 1.0
+  bce_weight: 1.0
+  bce_pos_weight: 100.0  # null to disable
+
+optimizer:
+  name: adam  # "adam" or "adamw" or "sgd"
+  lr: 0.0001
+  weight_decay: 0.00001
+  momentum: 0.9  # for sgd
+
+scheduler:
+  name: cosine  # "none", "cosine", "step"
+  warmup_epochs: 0
+  step_size: 10
+  gamma: 0.5
+
+training:
+  batch_size: 8
+  epochs: 2
+  num_workers: 4
+  amp: true
+  grad_clip: 1.0
+  seed: 42
+  log_interval: 10
+  save_checkpoint: true
+  validate_every: null  # null = no validation
+
+profiles:
+  test_2d:
+    enabled: true
+    description: Quick 2D U-Net smoke test
+    data:
+      mode: 2d
+      patch_size: [256, 256]
+      case_limit: 5
+    model:
+      arch: unet2d
+      base_filters: 32
+    training:
+      batch_size: 4
+      epochs: 2
+      num_workers: 4
+
+  test_3d:
+    enabled: true
+    description: Quick 3D U-Net smoke test
+    data:
+      mode: 3d
+      depth: 64
+      patch_size: [128, 128]
+      case_limit: 5
+    model:
+      arch: unet3d
+      base_filters: 16
+    training:
+      batch_size: 2
+      epochs: 2
+      num_workers: 4

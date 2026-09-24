@@ -1,0 +1,2 @@
+case_id,patient_id,session_id,split,fold,site,t1c_path,label_path,brain_mask_path
+BraTS-MEN-RT-0001-1,BraTS-MEN-RT-0001,1,train,0,SITE_A,data/raw/BraTS-MEN-RT-Train-v2/BraTS-MEN-RT-0001-1/BraTS-MEN-RT-0001-1_t1c.nii.gz,data/raw/BraTS-MEN-RT-Train-v2/BraTS-MEN-RT-0001-1/BraTS-MEN-RT-0001-1_gtv.nii.gz,

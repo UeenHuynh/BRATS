@@ -1,0 +1,8 @@
+dataset_id: 701
+dataset_name: BRATSMENRT
+model: nnunet_v2_3d
+patch_size: [128, 128, 128]
+batch_size: 1
+mixed_precision: true
+loss: dice_ce
+uncertainty_method: tta

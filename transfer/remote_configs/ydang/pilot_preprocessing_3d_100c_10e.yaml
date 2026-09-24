@@ -1,0 +1,44 @@
+schema_version: 1
+seed: 42
+mode: 3d
+dataset_root: /mnt/beegfs/ydang/BRATS/datasets/preprocessed
+output_root: /mnt/beegfs/ydang/BRATS/experiments/unet/pilot_preprocessing_3d_100c_10e
+source_split: train
+case_limit: 100
+profiles:
+  - P0_MEDIAN_ZSCORE
+  - P1_MEDIAN_CLIP_ZSCORE
+  - P2_MEDIAN_N4_ZSCORE
+  - P3_MEDIAN_N4_CLIP_ZSCORE
+split:
+  validation_fraction: 0.2
+data:
+  depth: 64
+  patch_size: [128, 128]
+training:
+  epochs: 10
+  batch_size: 2
+  num_workers: 4
+  amp: true
+  grad_clip: 1.0
+  log_interval: 10
+model:
+  arch: unet3d
+  in_channels: 1
+  num_classes: 1
+  base_filters: 16
+loss:
+  name: dice_ce
+  dice_weight: 1.0
+  bce_weight: 1.0
+  bce_pos_weight: 100.0
+optimizer:
+  name: adam
+  lr: 0.0001
+  weight_decay: 0.00001
+scheduler:
+  name: cosine
+  warmup_epochs: 0
+evaluation:
+  batch_size: 2
+  threshold: 0.5

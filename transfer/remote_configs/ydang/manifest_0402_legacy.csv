@@ -1,0 +1,2 @@
+case_id,split_group,source_dir,image_path,mask_path,has_label,pairing_status,warnings
+BraTS-MEN-RT-0402-1,train,/mnt/beegfs/ydang/BRATS/datasets/raw_canonical/train/BraTS-MEN-RT-0402-1,/mnt/beegfs/ydang/BRATS/datasets/raw_canonical/train/BraTS-MEN-RT-0402-1/BraTS-MEN-RT-0402-1_t1c.nii.gz,/mnt/beegfs/ydang/BRATS/datasets/raw_canonical/train/BraTS-MEN-RT-0402-1/BraTS-MEN-RT-0402-1_gtv.nii.gz,True,paired,

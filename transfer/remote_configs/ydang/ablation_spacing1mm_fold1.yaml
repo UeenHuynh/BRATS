@@ -1,0 +1,22 @@
+schema_version: 1
+experiment_name: spacing1mm_fold1_seed42
+require_cuda: true
+expected_labeled_cases: 500
+folds: [1]
+seeds: [42]
+inner_validation_fraction: 0.10
+inner_split_seed: 4242
+fold_root: /mnt/beegfs/ydang/BRATS/experiments/legacy_corrected/run_20949/splits
+raw_label_root: /mnt/beegfs/ydang/BRATS/datasets/raw_canonical/train
+raw_label_template: "{case_id}/{case_id}_gtv.nii.gz"
+output_root: /mnt/beegfs/ydang/BRATS/experiments/ablation_spacing1mm_fold1
+arms:
+  P0_SPACING1MM_ZSCORE:
+    root: /mnt/beegfs/ydang/BRATS/experiments/preprocessing_spacing1mm_fold1/current/datasets/P0_SPACING1MM_ZSCORE/train
+    image_template: "images/{case_id}.nii.gz"
+    label_template: "labels/{case_id}.nii.gz"
+data: {patch_shape: [64, 128, 128], patches_per_case: 2, foreground_probability: 0.67}
+model: {architecture: unet3d, in_channels: 1, num_classes: 1, base_filters: 16}
+loss: {name: dice_ce, dice_weight: 1.0, bce_weight: 1.0, bce_pos_weight: 100.0}
+training: {epochs: 150, batch_size: 2, num_workers: 0, amp: true, learning_rate: 0.0001, weight_decay: 0.00001, grad_clip: 1.0, evaluation_interval: 5, early_stopping_patience: 30}
+evaluation: {batch_size: 2, threshold: 0.5, overlap: 0.5, surface_dice_tolerance_mm: 2.0}

@@ -1,47 +1,52 @@
-# BraTS-MEN-RT Research
+# BraTS-MEN-RT workspace
 
-Research code for preprocessing and tumor-segmentation benchmarks on the BraTS-MEN-RT dataset.
+> Cập nhật trạng thái gần nhất: **2026-09-23**. Canonical raw và P0--P3 đã pass các data gate; spacing 1 mm đang được đối chiếu với P0 trên fold 2, seed 42.
 
-## Current results
+Đây là workspace chứa **hai pipeline khác nhau**:
 
-The latest full 3D experiment trained `P3_MEDIAN_N4_CLIP_ZSCORE` for 30 epochs and evaluated 100 validation cases.
+- `src/brats_men_rt/`, `scripts/`, `configs/`: pipeline nnU-Net cũ và các artifact cũ.
+- `code/brats-research/`: code mới từ `UeenHuynh/BRATS`, dùng các profile P0--P3.
 
-| Run | Model / profile | Epochs | Validation cases | Mean Dice | Mean HD95 (mm) | Sensitivity | Precision |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Full 3D | `unet3d` / `P3_MEDIAN_N4_CLIP_ZSCORE` | 30 | 100 | **0.3314** | **110.09** | 0.6352 | 0.2606 |
-| Full 2D | `unet2d` / `P3_MEDIAN_N4_CLIP_ZSCORE` | 30 | 100 | 0.0000 | N/A | 0.0000 | 0.0000 |
+Không chạy pipeline chỉ dựa vào README nằm trong một thư mục con. Hãy đọc theo thứ tự sau:
 
-The full 3D result is the current usable baseline. The reported 3D Dice is the mean across validation cases; its median is 0.2251 (SD 0.2974), which indicates substantial case-to-case variability.
+1. [`README_WORKSPACE.md`](README_WORKSPACE.md): thư mục nào là nguồn chuẩn, thư mục nào chỉ là lịch sử.
+2. [`docs/DATA_PROVENANCE.md`](docs/DATA_PROVENANCE.md): dữ liệu đến từ đâu và quy tắc thay thế case 0402.
+3. [`docs/INCIDENT_0402.md`](docs/INCIDENT_0402.md): lỗi trùng/ghi đè đã xảy ra trong pipeline cũ và ảnh hưởng tới split.
+4. [`docs/VALIDATION_AND_RERUN.md`](docs/VALIDATION_AND_RERUN.md): luồng kiểm tra bắt buộc trước khi chạy lại.
+5. [`docs/EXPERIMENT_RESULTS.md`](docs/EXPERIMENT_RESULTS.md): kết quả hiện có và giới hạn khi so sánh cũ--mới.
+6. [`docs/RERUN_READINESS.md`](docs/RERUN_READINESS.md): trạng thái go/no-go và job đang chạy.
+7. [`code/brats-research/README.md`](code/brats-research/README.md): cách chạy riêng code mới sau khi các data gate ở bước 4 đã pass.
+8. [`docs/ABLATION_PROTOCOL.md`](docs/ABLATION_PROTOCOL.md): protocol 5 nhánh và lệnh tự submit/kiểm tra.
 
-Detailed outputs are intentionally not tracked because they include large medical-image datasets and generated artifacts. The reference result files are:
+Tài liệu cũ được phân loại tại [`planning/README.md`](planning/README.md) và [`reports/README.md`](reports/README.md). Không đọc một report legacy riêng lẻ mà bỏ qua cảnh báo trạng thái.
 
-- `outputs/full_3d/seed42_20260906T035516Z/benchmark.json`
-- `outputs/full_2d/seed42_20260905T013521Z/benchmark.json`
+## Trạng thái hiện tại
 
-## Current issues and limitations
+- Raw canonical: 500 train + 70 validation, không trùng case ID.
+- `BraTS-MEN-RT-0402-1` dùng standalone patch, không dùng ảnh lỗi trong training v2.
+- 0402 đã được preprocess lại thành công cho P0--P3 và cài vào đủ bốn profile.
+- Kiểm tra P0--P3: mỗi profile có 500 train images, 500 train labels và 70 validation images.
+- Smoke test cũ--mới trên corrected 0402 đã pass; đồng thời xác nhận lỗi background/crop trong preprocessing cũ.
+- Regression tests legacy pass 10/10; corrected split có 500 validation assignments duy nhất.
+- Smoke5 corrected legacy--new P1 pass 5/5 ở job `20948`.
+- Legacy-corrected full `20949`: COMPLETED, validator pass 570 images/500 labels.
+- New P0--P3 full `20950`: COMPLETED, exit `0`, 570/570 case và 0 failure record.
+- Validator `20962`: COMPLETED, `valid: true`; mỗi P0--P3 đủ 500 train images, 500 labels và 70 validation images.
+- Protocol ablation 5 nhánh × 5 folds × 3 seeds: smoke `21002` pass; array chính đã bị hủy giữa chừng và còn thiếu nhiều task, chưa được aggregate.
+- Pilot 100 ca/10 epoch: spacing 1 mm đạt Dice validation `0,0356`, P0 `0,0220`; brain-mask normalization `0,0252`; intensity augmentation `0,0251`.
+- Spacing 1 mm full fold 1/seed 42: inner Dice `0,7294` so với P0 `0,7158`; outer Dice `0,6735` so với P0 `0,6719`. Đây là tín hiệu nhỏ, chưa đủ để chốt preprocessing.
+- Spacing 1 mm full fold 2/seed 42 đã hoàn tất sạch (`21858`); P0 fold 2 (`21859`) đang chạy để so sánh cùng fold. Kết quả spacing fold 2 hiện là Dice `0,6723`.
+- Các số spacing được ghi ở [`docs/EXPERIMENT_RESULTS.md`](docs/EXPERIMENT_RESULTS.md) và [`docs/MEN_RT_PREPROCESS_REVIEW.md`](docs/MEN_RT_PREPROCESS_REVIEW.md). Không dùng kết quả fold 2 resume cũ làm xác nhận chính thức.
 
-1. **Full 2D training/evaluation is invalid.** Its final validation Dice, sensitivity, and precision are all zero, while HD95 is the floating-point maximum value. This usually means all predictions were empty or the evaluation path did not produce valid foreground masks. Do not compare or use this run as a baseline until the 2D data/model/evaluation pipeline is debugged.
-2. **3D segmentation quality remains modest.** Mean Dice of 0.3314 and HD95 of 110.09 mm are insufficient for a strong segmentation result. Precision (0.2606) is especially low relative to sensitivity (0.6352), suggesting substantial false-positive volume.
-3. **High variability across cases.** The 3D Dice median (0.2251) is much lower than its mean, and the standard deviation is 0.2974. Performance should be inspected per case and stratified by tumor volume/site before drawing broader conclusions.
-4. **Limited experiment coverage.** The full result covers one preprocessing profile, one seed, and 30 epochs. The previous multi-profile benchmarks were short pilot runs, so they are not sufficient for robust profile selection.
-5. **Data and generated outputs are local-only.** MRI inputs, preprocessing products, checkpoints, and logs are not committed to GitHub because of their size and sensitivity. Reproduction requires access to the corresponding dataset and local output paths.
-
-## Recommended next steps
-
-1. Debug the full 2D prediction and evaluation pipeline using a small, known-positive subset; verify logits, thresholding, and mask shape/spacing alignment.
-2. Add qualitative overlays and per-case metric reports for the 3D run to identify failure modes.
-3. Tune postprocessing/thresholding and loss weighting to reduce false positives, then run multiple seeds.
-4. Re-run the four preprocessing profiles with matched full training budgets before selecting a final profile.
-
-## Running benchmarks
-
-The benchmark configuration files are in `configs/`. The Slurm workflows are in `scripts/`:
-
-- `scripts/run_unet_benchmark_cheaha.sbatch`
-- `scripts/tune_then_full_unet_cheaha.sbatch`
-
-Run the benchmark module after preparing a dataset at the configured `dataset_root`:
+## Lệnh kiểm tra nhanh
 
 ```bash
-uv run python -m brats.experiments.benchmark --config configs/benchmark_3d.yaml
+python transfer/scripts/validate_canonical_dataset.py
+python transfer/scripts/validate_preprocessed_dataset.py \
+  --dataset-root datasets/preprocessed \
+  --manifest code/brats-research/manifests/local_dataset.csv \
+  --expected-train-count 500 \
+  --expected-validation-count 70
 ```
+
+Chỉ tiếp tục preprocessing/training khi cả hai lệnh trả exit code `0` và JSON có `"valid": true`.

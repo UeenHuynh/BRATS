@@ -1,0 +1,74 @@
+{
+  "manifest_train_cases": 500,
+  "manifest_validation_cases": 70,
+  "profiles": {
+    "P0_MEDIAN_ZSCORE": {
+      "train_images": 499,
+      "train_labels": 499,
+      "usable_train_cases": 499,
+      "validation_images": 70,
+      "missing_train_images": [
+        "BraTS-MEN-RT-0402-1"
+      ],
+      "missing_train_labels": [
+        "BraTS-MEN-RT-0402-1"
+      ],
+      "unexpected_train_images": [],
+      "unexpected_train_labels": [],
+      "missing_validation_images": [],
+      "unexpected_validation_images": []
+    },
+    "P1_MEDIAN_CLIP_ZSCORE": {
+      "train_images": 499,
+      "train_labels": 499,
+      "usable_train_cases": 499,
+      "validation_images": 70,
+      "missing_train_images": [
+        "BraTS-MEN-RT-0402-1"
+      ],
+      "missing_train_labels": [
+        "BraTS-MEN-RT-0402-1"
+      ],
+      "unexpected_train_images": [],
+      "unexpected_train_labels": [],
+      "missing_validation_images": [],
+      "unexpected_validation_images": []
+    },
+    "P2_MEDIAN_N4_ZSCORE": {
+      "train_images": 499,
+      "train_labels": 499,
+      "usable_train_cases": 499,
+      "validation_images": 70,
+      "missing_train_images": [
+        "BraTS-MEN-RT-0402-1"
+      ],
+      "missing_train_labels": [
+        "BraTS-MEN-RT-0402-1"
+      ],
+      "unexpected_train_images": [],
+      "unexpected_train_labels": [],
+      "missing_validation_images": [],
+      "unexpected_validation_images": []
+    },
+    "P3_MEDIAN_N4_CLIP_ZSCORE": {
+      "train_images": 499,
+      "train_labels": 499,
+      "usable_train_cases": 499,
+      "validation_images": 70,
+      "missing_train_images": [
+        "BraTS-MEN-RT-0402-1"
+      ],
+      "missing_train_labels": [
+        "BraTS-MEN-RT-0402-1"
+      ],
+      "unexpected_train_images": [],
+      "unexpected_train_labels": [],
+      "missing_validation_images": [],
+      "unexpected_validation_images": []
+    }
+  },
+  "common_usable_train_cases": 499,
+  "common_missing_train_cases": [
+    "BraTS-MEN-RT-0402-1"
+  ]
+}

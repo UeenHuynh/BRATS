@@ -1,0 +1,2 @@
+case_id,patient_id,session_id,split,fold,site,t1c_path,label_path,brain_mask_path
+BraTS-MEN-RT-0402-1,BraTS-MEN-RT-0402,1,train,,,datasets/raw_canonical/train/BraTS-MEN-RT-0402-1/BraTS-MEN-RT-0402-1_t1c.nii.gz,datasets/raw_canonical/train/BraTS-MEN-RT-0402-1/BraTS-MEN-RT-0402-1_gtv.nii.gz,

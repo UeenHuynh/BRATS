@@ -1,0 +1,10 @@
+{
+  "crop_margin_voxels": [8, 8, 8],
+  "intensity_clipping_percentiles": [0.5, 99.5],
+  "normalization_region": "nonzero",
+  "resampling": {
+    "enabled": false,
+    "target_spacing_mm": [1.0, 1.0, 1.0]
+  },
+  "target_orientation": "RAS"
+}
